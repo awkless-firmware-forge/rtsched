@@ -1,0 +1,3 @@
+[submodule "extern/acutest"]
+	path = extern/acutest
+	url = https://github.com/mity/acutest.git
