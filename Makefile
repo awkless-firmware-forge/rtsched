@@ -18,7 +18,9 @@ SERIAL_BAUD = 9600
 AVRDUDEFLAGS := -p $(MCU) -c $(PROGRAMMER) -P $(PORT) -b $(PORT_BAUD)
 OBJCOPYFLAGS := -j .text -j .data -O ihex
 INC_FLAGS := -Isrc/
-CFLAGS := -std=c99 -Wall -Wextra -Os -pedantic -DF_CPU=$(F_CPU) -mmcu=$(MCU)
+CFLAGS := -std=c99 -Wall -Wextra -Os -pedantic -DF_CPU=$(F_CPU) -mmcu=$(MCU) \
+	  -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums \
+	  -ffunction-sections -fdata-sections -Wl,--gc-sections
 LDFLAGS :=
 
 SRC := src/ringbuf.c src/main.c
