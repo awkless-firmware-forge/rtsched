@@ -3,52 +3,44 @@
  */
 
 #include <string.h>
+#include <util/atomic.h>
 
 #include "ringbuf.h"
 
-void
-ringbuf_init(struct RingBuf *rbuf)
+int
+ringbuf_get(struct RingBuf *rbuf, uint8_t *item)
 {
-	rbuf->head = 0;
-	rbuf->tail = 0;
-	rbuf->size = 0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		if (ringbuf_is_empty(rbuf))
+			return -RINGBUF_UNDERFLOW;
+
+		*item = rbuf->buf[rbuf->tail];
+		rbuf->tail = (rbuf->tail + 1) & RINGBUF_MASK;
+	}
+
+	return RINGBUF_OK;
 }
 
-bool
-ringbuf_is_empty(struct RingBuf *rbuf)
-{
-	return rbuf->size == 0;
-}
-
-uint8_t
-ringbuf_get(struct RingBuf *rbuf)
-{
-	if (ringbuf_is_empty(rbuf))
-		return 0;
-
-	uint8_t item = *rbuf->buf[rbuf->tail];
-	rbuf->tail = (rbuf->tail + 1) % RINGBUF_CAPACITY;
-	--rbuf->size;
-
-	return item;
-}
-
-void
+int
 ringbuf_put(struct RingBuf *rbuf, uint8_t item)
 {
-	if (rbuf->size >= RINGBUF_CAPACITY)
-		return;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		if (ringbuf_is_full(rbuf))
+			return -RINGBUF_OVERFLOW;
 
-	*rbuf->buf[rbuf->head] = item;
-	rbuf->head = (rbuf->head + 1) % RINGBUF_CAPACITY;
-	++rbuf->size;
+		rbuf->buf[rbuf->head] = item;
+		rbuf->head = (rbuf->head + 1) & RINGBUF_MASK;
+	}
+
+	return RINGBUF_OK;
 }
 
 void
 ringbuf_flush(struct RingBuf *rbuf)
 {
-	memset(rbuf->buf, 0, sizeof *rbuf->buf * RINGBUF_CAPACITY);
-	rbuf->head = 0;
-	rbuf->tail = 0;
-	rbuf->size = 0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		memset(rbuf->buf, 0, sizeof rbuf->buf);
+		rbuf->head = 0;
+		rbuf->tail = 0;
+	}
 }
