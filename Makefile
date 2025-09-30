@@ -23,7 +23,7 @@ CFLAGS := -std=c99 -Wall -Wextra -Os -pedantic -DF_CPU=$(F_CPU) -mmcu=$(MCU) \
 	  -ffunction-sections -fdata-sections -Wl,--gc-sections
 LDFLAGS :=
 
-SRC := src/ringbuf.c src/main.c
+SRC := src/serial.c src/ringbuf.c src/main.c
 OBJ := $(SRC:.c=.o)
 
 ##! Development Targets
@@ -37,6 +37,7 @@ init: ## Intitialize external modules
 
 rtsched.hex: rtsched.elf ## Generate Intel HEX of firmware for upload
 	$(OBJCOPY) $(OBJCOPYFLAGS) $^ $@
+	@avr-size -C --mcu=$(MCU) $^
 
 rtsched.elf: $(OBJ) ## Generate ELF of firmware to get Intel HEX from
 	$(CC) $(CFLAGS) $(INC_FLAGS) -o $@ $^ $(LDFLAGS)
@@ -46,7 +47,7 @@ rtsched.elf: $(OBJ) ## Generate ELF of firmware to get Intel HEX from
 	$(CC) $(CFLAGS) $(INC_FLAGS) -c -o $@ $< $(LDFLAGS)
 
 .PHONY: upload
-upload: ## Flash source code to MCU via programmer
+upload: rtsched.hex ## Flash source code to MCU via programmer
 	$(AVRDUDE) $(AVRDUDEFLAGS) -U flash:w:$<
 
 ##! Maintenance Targets
@@ -60,7 +61,7 @@ serial: ## Connect to serial port to view MCU output through USART
 	tio $(PORT) --baudrate $(SERIAL_BAUD) \
 		--databits 8 \
 		--flow none \
-		--stopbits 1 \
+		--stopbits 2 \
 		--parity none
 
 .PHONY: help
